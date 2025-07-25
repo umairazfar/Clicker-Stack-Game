@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Clicker Stack Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 20px;
+    }
+    #game-area {
+      display: flex;
+      flex-direction: column-reverse;
+      align-items: center;
+      margin-top: 20px;
+      height: 300px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      padding: 10px;
+    }
+    .box {
+      width: 50px;
+      height: 50px;
+      margin: 5px;
+      font-size: 16px;
+      font-weight: bold;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    #score, #timer {
+      font-size: 20px;
+      margin: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+    #queue {
+      margin-top: 20px;
+      font-size: 14px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Clicker Stack Game</h2>
+  <h3>Green: 2 points Yellow: 5 points Red: 10 points</h3>
+<div id="score">Score: 0</div>
+<div id="timer">Time Left: 60s</div>
+<button onclick="startGame()">Start Game</button>
+
+<div id="game-area"></div>
+<div id="queue">Pending Tasks: 0</div>
+
+<script>
+  let score = 0;
+  let timeLeft = 60;
+  let gameTimer;
+  let gameRunning = false;
+  let taskQueue = [];
+
+  function startGame() {
+    score = 0;
+    timeLeft = 60;
+    gameRunning = true;
+    taskQueue = [];
+    document.getElementById('score').textContent = 'Score: 0';
+    document.getElementById('timer').textContent = 'Time Left: 60s';
+    document.getElementById('queue').textContent = 'Pending Tasks: 0';
+    document.getElementById('game-area').innerHTML = '';
+
+    clearInterval(gameTimer);
+    gameTimer = setInterval(() => {
+      timeLeft--;
+      document.getElementById('timer').textContent = `Time Left: ${timeLeft}s`;
+      if (timeLeft <= 0) {
+        clearInterval(gameTimer);
+        gameRunning = false;
+        alert(`Game Over! Your score: ${score}`);
+      }
+    }, 1000);
+
+    spawnBox();
+  }
+
+  function spawnBox() {
+    if (!gameRunning) return;
+
+    const clicksRequired = generateTaskDifficulty();
+    const task = createBox(clicksRequired);
+
+    const stack = document.getElementById('game-area');
+    if (stack.children.length < 5) {
+      stack.appendChild(task);
+    } else {
+      taskQueue.push(clicksRequired);
+      updateQueueDisplay();
+    }
+
+    const nextDelay = Math.floor(Math.random() * 2000) + 1000; // 1–3 seconds
+    setTimeout(spawnBox, nextDelay);
+  }
+
+  function generateTaskDifficulty() {
+    const rand = Math.random();
+    if (rand < 0.4) return Math.floor(Math.random() * 10) + 1;       // Easy
+    else if (rand < 0.8) return Math.floor(Math.random() * 15) + 11; // Medium
+    else return Math.floor(Math.random() * 25) + 26;                 // Hard
+  }
+
+  function createBox(clicksRequired) {
+    const box = document.createElement('div');
+    box.className = 'box';
+    box.dataset.clicks = clicksRequired;
+    box.dataset.original = clicksRequired;
+    box.textContent = clicksRequired;
+
+    if (clicksRequired <= 10) {
+      box.style.backgroundColor = 'green';
+    } else if (clicksRequired <= 25) {
+      box.style.backgroundColor = 'gold';
+    } else {
+      box.style.backgroundColor = 'red';
+    }
+
+    box.onclick = () => {
+      let current = parseInt(box.dataset.clicks);
+      current--;
+      if (current <= 0) {
+        const original = parseInt(box.dataset.original);
+        if (original <= 10) score += 2;
+        else if (original <= 25) score += 5;
+        else score += 10;
+
+        document.getElementById('score').textContent = `Score: ${score}`;
+        box.remove();
+        checkQueue();
+      } else {
+        box.dataset.clicks = current;
+        box.textContent = current;
+      }
+    };
+
+    return box;
+  }
+
+  function checkQueue() {
+    if (taskQueue.length > 0 && document.getElementById('game-area').children.length < 5) {
+      const nextTask = taskQueue.shift();
+      const newBox = createBox(nextTask);
+      document.getElementById('game-area').appendChild(newBox);
+      updateQueueDisplay();
+    }
+  }
+
+  function updateQueueDisplay() {
+    document.getElementById('queue').textContent = `Pending Tasks: ${taskQueue.length}`;
+  }
+</script>
+
+</body>
+</html>
